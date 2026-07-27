@@ -1,0 +1,42 @@
+name: Build APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      zip_file:
+        description: 'ZIP file name'
+        required: false
+        default: 'app.zip'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract project ZIP
+        run: |
+          rm -rf app_source
+          mkdir app_source
+          unzip -o ${{ github.event.inputs.zip_file }} -d app_source
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: stable
+
+      - name: Get dependencies
+        working-directory: app_source
+        run: flutter pub get
+
+      - name: Build APK
+        working-directory: app_source
+        run: flutter build apk --release
+
+      - name: Upload APK artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: app_source/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 7
